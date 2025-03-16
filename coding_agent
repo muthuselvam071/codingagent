@@ -1,0 +1,116 @@
+import streamlit as st
+import requests
+import json
+
+# Function to check if a question is code-related
+def is_code_related(question):
+    code_keywords = [
+        "python", "java", "c++", "javascript", "code", "programming",
+        "algorithm", "function", "class", "loop", "debug", "compile",
+        "execute", "variable", "array", "syntax", "exception", "error",
+        "framework", "library", "data structure"
+    ]
+    return any(keyword in question.lower() for keyword in code_keywords)
+
+# Function to send a question to the DeepSeek-R1:8B model
+def ask_question(model_name, question):
+    url = f"http://localhost:11434/api/chat"  # Update the API endpoint if needed
+    payload = {
+        "model": model_name,
+        "messages": [{"role": "user", "content": question}]
+    }
+    try:
+        response = requests.post(url, json=payload, stream=True)
+        response.raise_for_status()
+        full_response = ""
+        for line in response.iter_lines():
+            if line:
+                chunk = json.loads(line)
+                full_response += chunk.get("message", {}).get("content", "")
+        return full_response.strip()
+    except requests.exceptions.RequestException as e:
+        return f"Request error: {e}"
+    except json.JSONDecodeError as ve:
+        return f"JSON decode error: {ve}"
+
+# Streamlit app
+def main():
+    # Custom app title and layout
+    st.set_page_config(page_title="Code Assistant", page_icon=":robot:", layout="centered")
+    st.markdown(
+        """
+        <style>
+        body {
+            background-color: #f4f4f9;
+            font-family: 'Roboto', sans-serif;
+        }
+        .stButton button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .stButton button:hover {
+            background-color: #45a049;
+        }
+        .header {
+            text-align: center;
+            padding: 30px;
+            color: #4CAF50;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Title and description
+    st.markdown("<div class='header'><h1> Code Assistant</h1></div>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="text-align: center; font-size: 18px; color: #333;">
+        <p>Welcome to your personal coding assistant! Ask me any programming-related question, and I'll help you with an accurate response.</p>
+        <p>💡 This assistant only supports questions about <b>programming, algorithms, or coding topics.</b></p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Input section
+    st.markdown("<div class='container'>", unsafe_allow_html=True)
+    question = st.text_input("Enter your question:", placeholder="E.g., How do I reverse a string in Python?")
+    model_name = "deepseek-r1:8b"  # Updated model name
+
+    # Ask button
+    if st.button("Ask"):
+        if is_code_related(question):
+            st.write("**Your Question:**", question)
+            st.write("Thinking... ⏳")
+            answer = ask_question(model_name, question)
+            st.markdown("### Model's Response:")
+            st.success(answer)
+        else:
+            st.error("This agent only answers code-related questions. Please ask about programming, algorithms, or coding topics.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Footer
+    st.markdown(
+        """
+        <hr style="border: 1px solid #ddd;">
+        <div style="text-align: center; font-size: 14px; color: #666;">
+        <p>Made By MUTHU SELVAM  ❤️ </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+if __name__ == "__main__":
+    main()
